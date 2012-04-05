@@ -1,0 +1,34 @@
+# simple-rabbit
+
+This is a simple wrapper on top of the clj-plaza-rabbit library. The intention is to provide simple constructs
+for common messaging patterns to get going and implement listeners and publishers very quickly.
+
+Also handles json wrapping automatically 
+
+## Usage
+
+Define consumers using the 'on' macro, eg:
+
+(on auth.simple [msg]
+	(print "Do some work with" msg)
+	(reply {:msgtext "Hello World"})
+	(route "auth" "log" msg)
+	)
+	
+This will define a function 'auth-simple' in the local namespace and register itself with simple-rabbit.
+
+msg will be the actual message passed through, which you can inspect and do stuff with - 'reply' is a lexically
+bound function that will use the reply-to header of the message to reply to the empty exchange using the reply-to
+header of the message as a routing key.
+
+The call to (route) essentially puts a message on the exchange "auth" with routing key "log" keeping the original
+reply destination intact so that a reply from that queue will reply to the same place as if you replied from the
+original consumer.
+
+To actually start up (or have newly registered consumers fire up), you need to make a call to (start-consumers).
+
+## License
+
+Copyright (C) 2012 Yuppiechef.com
+
+Distributed under the Eclipse Public License, the same as Clojure.
