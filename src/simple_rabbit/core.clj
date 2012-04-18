@@ -97,11 +97,11 @@
              :routing-key routing-key
              :f f}))))
 
-(defn connect [old-rabbit]
-  (rbt/connect))
+(defn connect [old-rabbit & args]
+  (apply rbt/connect args))
 
-(defn start-consumers []
-  (dosync (alter *rabbit* connect ))
+(defn start-consumers [& connect-args]
+  (dosync (apply alter *rabbit* connect connect-args))
   (doseq [[consumer-name consumer] @consumers]
     (if (not (contains? consumer :started))
       (dosync
@@ -115,12 +115,12 @@
 ameter."
   [queue params & body]
   (let [qname (name queue)
-        [exchange routing-key] (.split qname "[.]" 2)
+        [exchange _] (.split qname "[.]" 2)
         fnname (symbol (.replaceAll qname "[.]" "-"))]
     
     `(do
        (defn ~fnname [~@params] ~@body)
-       (register-consumer *ns* ~(name queue) ~exchange ~routing-key ~fnname)
+       (register-consumer *ns* ~(name queue) ~exchange ~qname ~fnname)
        )
     ))
 
