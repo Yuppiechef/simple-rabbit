@@ -47,8 +47,8 @@
         (.replyTo (:reply-to properties))
         (.contentType (:content-type properties))
         (.headers map-props)
-        (.build)))
-  )
+        (.build))))
+
 (defn send-msg
   "Reply to a message based on original message :replyto field."
   ([channel-key exchange routing-key message]
@@ -79,8 +79,13 @@
 
 (defn simple-consumer [consumer-name {:keys [qname chname chankey exchange routing-key]}]
   (rbt/get-channel @*rabbit* chname)
-  (rbt/declare-topic-exchange @*rabbit* chname exchange)
-  (rbt/make-queue @*rabbit* chname qname exchange routing-key :autodelete false)
+  (try
+    (rbt/declare-topic-exchange @*rabbit* chname exchange)
+    (catch Exception e (info "Could not declare exchange" exchange ", does it already exist?")))
+
+  (try
+    (rbt/make-queue @*rabbit* chname qname exchange routing-key :autodelete false)
+    (catch Exception e (info "Could not declare queue" qname ", does it already exist?")))
   (rbt/make-consumer @*rabbit* chname qname #(messagefn consumer-name chankey %1 %2 %3))
     )
 
@@ -115,12 +120,11 @@
 ameter."
   [queue params & body]
   (let [qname (name queue)
-        [exchange _] (.split qname "[.]" 2)
         fnname (symbol (.replaceAll qname "[.]" "-"))]
     
     `(do
        (defn ~fnname [~@params] ~@body)
-       (register-consumer *ns* ~(name queue) ~exchange ~qname ~fnname)
+       (register-consumer *ns* ~(name queue) "process" ~qname ~fnname)
        )
     ))
 
