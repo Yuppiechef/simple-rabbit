@@ -25,7 +25,11 @@
 
 (defn parsemessage [message content-type]
   (cond
-   (.equals "application/json" content-type) (json/parse-string message true)
+   (.equals "application/json" content-type)
+   (try (json/parse-string message true)
+        (catch Exception e
+          (warn "Could not parse json message?" message)
+          message))
    :else message)
   )
 
@@ -61,19 +65,25 @@
   (let [content-type (get properties :content-type "application/json")
         props (impl/convert-properties (assoc properties :content-type content-type))
         encoded (encodemessage message content-type)]
-    (impl/publish-raw channel exchange routing-key encoded props)))
+    (if (or (and (not (nil? exchange)) (> (.length exchange) 0))
+            (and (not (nil? routing-key)) (> (.length routing-key) 0)))
+      (impl/publish-raw channel exchange routing-key encoded props))))
 
 (defn messagefn
-  [f channel message properties envelope]
-  (let [parsed (parsemessage message (.getContentType properties))]
-    (binding [reply (partial send-msg channel "" (.getReplyTo properties))]
-      (f parsed properties envelope))))
+  [f qname channel message properties envelope]
+  (try
+    (let [parsed (parsemessage message (.getContentType properties))]
+      (binding [reply (partial send-msg channel "" (.getReplyTo properties))]
+        (f parsed properties envelope)))
+    (catch Exception e
+      (warn "Exception processing message for queue:" qname ", message:" message)
+      (.printStackTrace e))))
 
 (defn register-consumer [nspace qname f]
   (let [consumer-name (str (.name nspace) "." qname)]
     (dosync
      (alter consumers assoc consumer-name
-            {:qname qname :f #(messagefn f %1 %2 %3 %4) :autoack true}))))
+            {:qname qname :f #(messagefn f qname %1 %2 %3 %4) :autoack true}))))
 
 (defn start-consumers [connection]
   (doseq [[consumer-name consumer] @consumers]
