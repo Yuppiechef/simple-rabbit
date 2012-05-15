@@ -93,14 +93,16 @@
        (alter consumers assoc consumer-name
               (assoc consumer :started true))))))
 
-(defmacro on
-  [queue params & body]
-  (let [qname (name queue)
-        fnname (symbol (.replaceAll qname "[.]" "-"))]
-    `(do
-       (defn ~fnname [~@params] ~@body)
-       (register-consumer *ns* ~qname ~fnname))
-    ))
+(defn rpc-message [channel exchange routing-key timeout f message & [properties]]
+  (with-open [rpc (impl/rpc-client channel exchange routing-key timeout)]
+    (let [content-type (get properties :content-type "application/json")
+          props (impl/convert-properties (assoc properties :content-type content-type))
+          encoded (encodemessage message content-type)
+          result (impl/rpc-call rpc encoded properties)
+          parsed (parsemessage message (get properties :response-type "application/json"))]
+      (f parsed)
+      )))
+
 
 
 (comment

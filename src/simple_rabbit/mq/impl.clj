@@ -2,7 +2,8 @@
   (:use [clojure.tools.logging])
   (:import [java.util.concurrent LinkedBlockingQueue]
            [com.rabbitmq.client
-            Connection Channel Envelope AMQP ConnectionFactory Consumer QueueingConsumer]))
+            Connection Channel Envelope AMQP ConnectionFactory Consumer QueueingConsumer
+            RpcClient]))
 
 ;; This forms a thin layer over the existing AMQP libraries and
 ;; doesn't attempt to do much more than provide a simple clojure layer over
@@ -113,3 +114,9 @@
 
 (defn simple-consumer [channel consumer-name {:keys [qname autoack f] :as consumer}]
   (start-consumer channel qname (create-consumer channel f) autoack))
+
+(defn rpc-client [channel exchange routing-key timeout]
+  (RpcClient. channel exchange routing-key timeout))
+
+(defn rpc-call [client message & [properties]]
+  (.primitiveCall (convert-properties properties) (.getBytes message)))
