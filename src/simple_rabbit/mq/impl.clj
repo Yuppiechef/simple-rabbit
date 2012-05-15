@@ -44,6 +44,7 @@
   (let [map-props (into {} (map #(vector (name (first %)) (second %)) properties))]
     (-> (com.rabbitmq.client.AMQP$BasicProperties$Builder.)
         (.replyTo (:reply-to properties))
+        (.correlationId (:correlation-id properties))
         (.contentType (:content-type properties))
         (.headers map-props)
         (.build))))
@@ -119,4 +120,4 @@
   (RpcClient. channel exchange routing-key timeout))
 
 (defn rpc-call [client message & [properties]]
-  (.primitiveCall (convert-properties properties) (.getBytes message)))
+  (.primitiveCall client (convert-properties properties) message))

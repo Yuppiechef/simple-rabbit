@@ -69,11 +69,18 @@
             (and (not (nil? routing-key)) (> (.length routing-key) 0)))
       (impl/publish-raw channel exchange routing-key encoded props))))
 
+(defn reply-msg [channel reply-id correlation-id message & [properties]]
+  (let [props (assoc properties :correlation-id correlation-id)]
+    (info "Sending" message "to" reply-id "with properties" (impl/convert-properties props))
+    
+    (send-msg channel "" reply-id message props))
+  )
+
 (defn messagefn
   [f qname channel message properties envelope]
   (try
     (let [parsed (parsemessage message (.getContentType properties))]
-      (binding [reply (partial send-msg channel "" (.getReplyTo properties))]
+      (binding [reply (partial reply-msg channel (.getReplyTo properties) (.getCorrelationId properties))]
         (f parsed properties envelope)))
     (catch Exception e
       (warn "Exception processing message for queue:" qname ", message:" message)
@@ -96,10 +103,10 @@
 (defn rpc-message [channel exchange routing-key timeout f message & [properties]]
   (with-open [rpc (impl/rpc-client channel exchange routing-key timeout)]
     (let [content-type (get properties :content-type "application/json")
-          props (impl/convert-properties (assoc properties :content-type content-type))
+          props (assoc properties :content-type content-type)
           encoded (encodemessage message content-type)
-          result (impl/rpc-call rpc encoded properties)
-          parsed (parsemessage message (get properties :response-type "application/json"))]
+          result (impl/rpc-call rpc encoded props)
+          parsed (parsemessage (String. result "UTF-8") (get props :response-type "application/json"))]
       (f parsed)
       )))
 
