@@ -65,5 +65,5 @@
         fnname (symbol (.replaceAll qname "[.]" "-"))]
     `(do
        (defn ~fnname [~@params] ~@body)
-       (mq/register-consumer *ns* ~qname ~fnname))
+       (mq/register-consumer *ns* ~qname #(~fnname %1 %2 %3)))
     ))

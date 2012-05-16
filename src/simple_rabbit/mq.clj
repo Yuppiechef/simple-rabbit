@@ -71,8 +71,6 @@
 
 (defn reply-msg [channel reply-id correlation-id message & [properties]]
   (let [props (assoc properties :correlation-id correlation-id)]
-    (info "Sending" message "to" reply-id "with properties" (impl/convert-properties props))
-    
     (send-msg channel "" reply-id message props))
   )
 
@@ -101,14 +99,16 @@
               (assoc consumer :started true))))))
 
 (defn rpc-message [channel exchange routing-key timeout f message & [properties]]
-  (with-open [rpc (impl/rpc-client channel exchange routing-key timeout)]
-    (let [content-type (get properties :content-type "application/json")
-          props (assoc properties :content-type content-type)
-          encoded (encodemessage message content-type)
-          result (impl/rpc-call rpc encoded props)
-          parsed (parsemessage (String. result "UTF-8") (get props :response-type "application/json"))]
-      (f parsed)
-      )))
+  (try
+    (with-open [rpc (impl/rpc-client channel exchange routing-key timeout)]
+      (let [content-type (get properties :content-type "application/json")
+            props (assoc properties :content-type content-type)
+            encoded (encodemessage message content-type)
+            result (impl/rpc-call rpc encoded props)
+            parsed (parsemessage (String. result "UTF-8") (get props :response-type "application/json"))]
+        (f parsed)
+        ))
+    (catch Exception e (.printStackTrace e))))
 
 
 

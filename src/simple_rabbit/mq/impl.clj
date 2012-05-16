@@ -37,7 +37,7 @@
 (defn publish-raw
   "Publish a message through a channel"
   [channel exchange routing-key message properties]
-  (info (str "Publishing a message with routing key " routing-key))
+  (info (str "Publishing a message with routing key: " routing-key ", properties: " properties))
   (.basicPublish channel exchange routing-key properties message))
 
 (defn convert-properties [properties]
