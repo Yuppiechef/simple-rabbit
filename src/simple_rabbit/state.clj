@@ -2,13 +2,19 @@
   (:use [clojure.tools.logging])
   (:require [simple-rabbit.mq :as mq]))
 
-
-
 (def rabbit-config (atom {:host "localhost" :virtual-host "/" :port "5672" :username "guest" :password "guest"}))
 (def rabbit (atom nil))
 
 (defn set-config [{:keys [host virtual-host port username password] :as config}]
   (compare-and-set! rabbit-config @rabbit-config config))
+
+;; Default headers to send on every message - hint: authentication token.
+(def message-send-headers (atom {}))
+(defn set-message-headers! [headermap]
+  (compare-and-set! message-send-headers @message-send-headers headermap))
+
+(defn add-message-header! [key val]
+  (swap! message-send-headers assoc key val))
 
 (defn connect []
   (if (not (nil? @rabbit))
@@ -27,13 +33,14 @@
 
 (defn send-msg [routing-key message & properties]
   (with-open [chan (channel)]
-    (mq/send-msg chan "publish" routing-key message properties)))
+    (mq/send-msg chan "publish" routing-key message (merge @message-send-headers properties))))
 
-(defn rpc [routing-key message result-fn timeout]
+(defn rpc [routing-key message result-fn timeout & properties]
   (check-connection)
   (.start
    (Thread.
-    #(mq/rpc-message (mq/channel @rabbit) "publish" routing-key timeout result-fn message))))
+    #(mq/rpc-message (mq/channel @rabbit) "publish" routing-key timeout result-fn message
+                     (merge @message-send-headers properties)))))
 
 (defn setup-rules [rules]
   (with-open [chan (channel)]
