@@ -1,6 +1,7 @@
 (ns simple-rabbit.state
   (:use [clojure.tools.logging])
-  (:require [simple-rabbit.mq :as mq]))
+  (:require [simple-rabbit.mq :as mq])
+  (:require [simple-rabbit.mq.impl :as impl]))
 
 (def rabbit-config (atom {:host "localhost" :virtual-host "/" :port "5672" :username "guest" :password "guest"}))
 (def rabbit (atom nil))
@@ -50,6 +51,22 @@
   (check-connection)
   (mq/start-consumers @rabbit))
 
+(defn consume
+  "Fires up an anonymous exclusive queue which binds to the process exchange by routing key and calls listen-fn when a message arrives - You can stop the consumer by calling stop-consumer on the result of this function."
+  [routing-key listen-fn]
+  (let [chan (channel)
+        declareok (impl/declare-queue chan "" false true true {})
+        queue-name (.getQueue declareok)]
+    
+    (impl/bind-queue chan queue-name "process" routing-key {})
+    (impl/simple-consumer chan "" {:qname queue-name :autoack true :f (partial #'mq/messagefn listen-fn queue-name)})
+    chan
+    ))
+
+(defn stop-consumer [consumer]
+  (.close consumer))
+
+
 ;; Convenience aliases.
 (def rules mq/rules)
 (defmacro queue [& args] `(mq/queue ~@args))
@@ -74,3 +91,9 @@
        (defn ~fnname [~@params] ~@body)
        (mq/register-consumer *ns* ~qname #(~fnname %1 %2 %3)))
     ))
+
+
+(defn something []
+
+  (let [consumer (consume "stockorder.updates.123" (fn [msg & props] (print msg)))]
+    (stop-consumer consumer)))
