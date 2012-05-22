@@ -67,9 +67,9 @@
   [channel name durable exclusive auto-delete properties]
   (info "Declaring queue:" name ", durable:" durable ", exclusive:" exclusive ", AD:" auto-delete ", Properties:" properties)
   (.queueDeclare channel name
-                 (if nil? false durable)
-                 (if nil? false exclusive)
-                 (if nil? false auto-delete) properties))
+                 durable
+                 exclusive
+                 auto-delete properties))
 
 (defn bind-queue
   "Binds a queue to an exchange, with routing key and additional properties"
