@@ -98,7 +98,7 @@
        (alter consumers assoc consumer-name
               (assoc consumer :started true))))))
 
-(defn rpc-message [channel exchange routing-key timeout f message & [properties]]
+(defn rpc-message [channel exchange routing-key timeout f timeout-fn message & [properties]]
   (try
     (with-open [rpc (impl/rpc-client channel exchange routing-key timeout)]
       (let [content-type (get properties :content-type "application/json")
@@ -108,7 +108,7 @@
             parsed (parsemessage (String. result "UTF-8") (get props :response-type "application/json"))]
         (f parsed)
         ))
-    (catch Exception e (.printStackTrace e))))
+    (catch Exception e (timeout-fn))))
 
 
 

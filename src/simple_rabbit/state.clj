@@ -36,11 +36,11 @@
   (with-open [chan (channel)]
     (mq/send-msg chan "publish" routing-key message (merge @message-send-headers properties))))
 
-(defn rpc [routing-key message result-fn timeout & properties]
+(defn rpc [routing-key message result-fn timeout timeout-fn & properties]
   (check-connection)
   (.start
    (Thread.
-    #(mq/rpc-message (mq/channel @rabbit) "publish" routing-key timeout result-fn message
+    #(mq/rpc-message (mq/channel @rabbit) "publish" routing-key timeout result-fn timeout-fn message
                      (merge @message-send-headers properties)))))
 
 (defn setup-rules [rules]
