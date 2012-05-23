@@ -108,7 +108,7 @@
             parsed (parsemessage (String. result "UTF-8") (get props :response-type "application/json"))]
         (f parsed)
         ))
-    (catch Exception e (timeout-fn))))
+    (catch Exception e (.printStackTrace e) (timeout-fn))))
 
 
 
