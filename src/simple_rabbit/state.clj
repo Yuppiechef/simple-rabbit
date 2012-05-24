@@ -92,8 +92,3 @@
        (mq/register-consumer *ns* ~qname #(~fnname %1 %2 %3)))
     ))
 
-
-(defn something []
-
-  (let [consumer (consume "stockorder.updates.123" (fn [msg & props] (print msg)))]
-    (stop-consumer consumer)))
