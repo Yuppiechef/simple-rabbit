@@ -84,6 +84,10 @@
       (warn "Exception processing message for queue:" qname ", message:" message)
       (.printStackTrace e))))
 
+(defn consumer-registered? [nspace qname]
+  (let [consumer-name (str (.name nspace) "." qname)]
+    (contains? @consumers consumer-name)))
+
 (defn register-consumer [nspace qname f]
   (let [consumer-name (str (.name nspace) "." qname)]
     (dosync
@@ -93,10 +97,11 @@
 (defn start-consumers [connection]
   (doseq [[consumer-name consumer] @consumers]
     (if (not (contains? consumer :started))
-      (impl/simple-consumer (channel connection) consumer-name consumer)
-      (dosync
-       (alter consumers assoc consumer-name
-              (assoc consumer :started true))))))
+      (do
+        (impl/simple-consumer (channel connection) consumer-name consumer)
+        (dosync
+         (alter consumers assoc consumer-name
+                (assoc consumer :started true)))))))
 
 (defn rpc-message [channel exchange routing-key timeout f timeout-fn message & [properties]]
   (try
