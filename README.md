@@ -25,7 +25,13 @@ First, lets get the namespace setup, for brevity I'll 'use' the simple-rabbit.st
   (:use [simple-rabbit.state]))
 ```
 
-First, lets define a few basic echo function :
+By default, the connection to RabbitMQ is to localhost, port 5672, virtualhost /, username guest and password guest, but you can set this by calling set-config before you call setup-rules :
+
+```clojure
+(set-config {:host "localhost" :virtual-host "/" :port "5672" :username "guest" :password "guest"})
+```
+
+Lets define a few basic echo function :
 
 ```clojure
 (defn echo [msg props envelope]
@@ -69,6 +75,7 @@ Let's now do an rpc call to make sure the consumer works:
 You should see 'RPC Result {:msg "rpc!"}' printed out on your repl. If the bindings weren't correct or something broke, it would say 'RPC Timeout' after 3 seconds.
 
 You can override the default publishing/consuming exchange topology by simply specifying it.
+
 
 Look at example.clj for more!
 
