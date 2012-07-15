@@ -11,7 +11,7 @@
 
 (defn connect
   "Connects to RabbitMQ"
-  [host port username password virtual-host]
+  [host port username password virtual-host & [shutdown-fn]]
   (let [port (if (instance? String port) (Integer/parseInt port) port)
         #^ConnectionFactory f (doto (ConnectionFactory.)
                                    (.setHost host)
@@ -19,8 +19,15 @@
                                    (.setUsername username)
                                    (.setPassword password)
                                    (.setVirtualHost virtual-host)
-                                   (.setRequestedHeartbeat 0))]
-    (.newConnection f)))
+                                   (.setRequestedHeartbeat 0))
+        connection (.newConnection f)]
+    (if shutdown-fn
+      (.addShutdownListener
+       connection
+       (proxy [com.rabbitmq.client.ShutdownListener] []
+         (shutdownCompleted [cause]
+           (shutdown-fn)))))
+    connection))
 
 (defn disconnect
   [rabbit]
@@ -82,6 +89,18 @@
   [channel queue exchange routing-key]
   (info "Unbinding queue:" queue "to exchange:" exchange "on key:" routing-key)
   (.queueUnbind channel queue exchange routing-key))
+
+(defn bind-exchange
+  "Binds an exchange to an exchange, with routing key and additional properties"
+  [channel destination source routing-key properties]
+  (info "Binding exchange:" source "to exchange:" destination "on key:" routing-key)
+  (.exchangeBind channel destination source routing-key properties))
+
+(defn unbind-exchange
+  "Unbinds an axchange from an exchange"
+  [channel destination source routing-key]
+  (info "Unbinding exchange:" source "to exchange:" destination "on key:" routing-key)
+  (.queueUnbind channel destination source routing-key))
 
 (defn create-consumer
   "Sets up a consumer for handling messages delivered to a queue"

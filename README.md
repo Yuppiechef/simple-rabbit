@@ -1,41 +1,76 @@
 simple-rabbit
 =============
 
-simple-rabbit is a wrapper over the Rabbit AMQP library as well as a provider for managing the flow of message logic from queue to queue.
+simple-rabbit is a RabbitMQ library that wraps the AMQP client library, provides connection state management and abstracted functions to quickly be able to register consumers, send messages and do rpc calls via RabbitMQ.
+
+It also handles wrapping clojure maps to and from JSON, using the content_type application/json as a marker for that.
+
+When the connection to RabbitMQ is lost, it will automatically try to open the connection again every second - If connection is re-opened, it will re-register all the consumers.
 
 Usage
 -----
 
-With the flow logic in mind, we will make an assumption that all local response queues are bound to the default (empty) exchange and will provide their address via the reply_to field in messages.
+Assuming you're using leiningen to manage your dependencies, add this library to your project.clj:
 
-To keep things simple, we also declare a single direct exchange for services to bind all the service queues to. Intuitively called "services". This is because the flow logic supersedes the flexibility that manually declaring exchanges gives us and then allows us to simplify finding the 'next queue' to just its routing key.
+```clojure
+  [com.yuppiechef/simple-rabbit "1.0.0"]
+```
 
-Any request should be placed on the "request" exchange with an appropriate routing key as if going directly to the service in question. This will be pulled by a local rules engine and managed from there.
+Now, lets build a simple echo service example - slightly more verbose code for this is in the src/simple-rabbit/example.clj
 
-We define all our rabbit rules in a single (rules) construct which can then be used to create exchanges, queues and their bindings, for example:
+First, lets get the namespace setup, for brevity I'll 'use' the simple-rabbit.state namespace instead of 'require':
 
-   (rules
-      (queue auth.simple :durable true :auto-delete false :exclusive false :message-ttl 1000 :arg1 "value1")
-      (queue message.encrypt :auto-delete false :arg1 "value1")
-      (queue images.cachesize)
-      (queue logging.debug)
+```clojure
+(ns simple-rabbit.example
+  (:use [simple-rabbit.state]))
+```
 
-      ;; More to come on defining flows between multiple queues.
-      )
+First, lets define a few basic echo function :
 
+```clojure
+(defn echo [msg props envelope]
+  (reply props msg))
+```
 
-We can define consumers quite simply:
+echo will be our echo service and it will reply with the message as-is.
 
-   (on auth.simple [msg]
-       (print "Do something with with" msg)
-       {:msgtext "Hello World"}
-       ;; The function response will become the response to the reply_to queue
-       ;; correlation_id will automatically be preserved.
-       )
+Then, let's define our queue, exchange and binding rules:
 
-msg will be the actual message passed through, which you can inspect and do stuff with 
+```clojure
+(def mqrules
+  (rules
+   (exchange process :fanout)
+   (exchange publish :topic)
+   (bind :exchange publish process)
+   
+   (queue test.echo :msg-fn #'echo)))
+```
 
-To actually start up (or have newly registered consumers fire up), you need to make a call to (start-consumers).
+Above, we're defining exchanges called "process" and "publish" - by default queues bind to "publish" exchange and messages send to the "process" exchange, so we'll just bind messages to go from one to the other.
+
+After we defined our exchanges, we'll define our echo queue and tell it that we want a consumer on that queue which will call our echo function.
+
+If you evaluate this, you will find that mqrules ends up just being a vector of hash-maps. Nothing has started yet.
+
+To fire everything off, call:
+
+```clojure
+(setup-rules mqrules)
+```
+
+If you look at your RabbitMQ instance, you should now see the "process" and "publish" exchanges, bound to each other and a "test.echo" queue bound to the "process" exchange with the key "test.echo".
+
+Let's now do an rpc call to make sure the consumer works:
+
+```clojure
+(rpc "test.echo" {:msg "rpc!"} #(println "RPC Result:" %1) 3000 #(println "RPC Timeout"))
+```
+
+You should see 'RPC Result {:msg "rpc!"}' printed out on your repl. If the bindings weren't correct or something broke, it would say 'RPC Timeout' after 3 seconds.
+
+You can override the default publishing/consuming exchange topology by simply specifying it.
+
+Look at example.clj for more!
 
 License
 -------
