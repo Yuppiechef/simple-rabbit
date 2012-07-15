@@ -50,7 +50,7 @@ Above, we're defining exchanges called "process" and "publish" - by default queu
 
 After we defined our exchanges, we'll define our echo queue and tell it that we want a consumer on that queue which will call our echo function.
 
-If you evaluate this, you will find that mqrules ends up just being a vector of hash-maps. Nothing has started yet.
+If you evaluate this, you will find that mqrules ends up just being a vector of hash-maps. Nothing has started yet. Note that this means you can conj a bunch of rules together and start them all up at once. Alternatively, you can just run (setup-rules) on each set of rules.
 
 To fire everything off, call:
 
