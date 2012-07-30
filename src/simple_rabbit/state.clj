@@ -63,15 +63,19 @@
     (mq/send-msg chan (or exchange "publish") routing-key message (merge @message-send-headers properties))))
 
 (defn reply [original-properties message & [properties]]
-  (apply mq/reply-msg (channel) original-properties message properties))
+  (with-open [chan (channel)]
+    (apply mq/reply-msg chan original-properties message properties)))
 
 
 (defn rpc [routing-key message result-fn timeout timeout-fn & [properties exchange]]
   (check-connection)
   (.start
    (Thread.
-    #(mq/rpc-message (channel) (or exchange "publish") routing-key timeout result-fn timeout-fn message
-                     (merge @message-send-headers properties)))))
+    #(with-open [chan (channel)]
+       (mq/rpc-message chan
+                       (or exchange "publish")
+                       routing-key timeout result-fn timeout-fn message
+                       (merge @message-send-headers properties))))))
 
 (defn setup-rules [rules]
   (info "Setup rules")
