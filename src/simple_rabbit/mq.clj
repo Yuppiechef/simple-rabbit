@@ -20,7 +20,9 @@
 
 (defonce consumers (atom {}))
 
-(defn parsemessage [message content-type]
+(defn parsemessage
+  "Parse a message with a given content type."
+  [message content-type]
   (cond
    (.equals "application/json" content-type)
    (try (json/parse-string message true)
@@ -55,10 +57,12 @@
 (defn messagefn
   [f qname channel message properties envelope]
   (try
-    (let [parsed (parsemessage message (.getContentType properties))]
-      ; This was too implicitly complex.
-      ;(binding [reply (partial reply-msg channel (.getReplyTo properties) (.getCorrelationId properties))])
-      (f parsed properties envelope))
+    (let [parsed (parsemessage message (.getContentType properties))
+          args [:msg parsed :properties properties :envelope envelope :channel channel :qname qname]
+          response (apply f args)]
+      (cond
+       (vector? response) (reply-msg channel properties (first response) (second response))
+       response (reply-msg channel properties response)))
     (catch Exception e
       (warn "Exception processing message for queue:" qname ", message:" message)
       (.printStackTrace e))))

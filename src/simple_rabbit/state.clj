@@ -3,12 +3,12 @@
   (:require [simple-rabbit.mq :as mq])
   (:require [simple-rabbit.mq.impl :as impl]))
 
-(def rabbit-config (atom {:host "localhost" :virtual-host "/" :port "5672" :username "guest" :password "guest"}))
-(def rabbit (atom nil))
-(def disconnecting (atom false))
-(def installed-rules (atom []))
-(def startup-fn (atom #()))
-(def message-send-headers (atom {}))
+(defonce rabbit-config (atom {:host "localhost" :virtual-host "/" :port "5672" :username "guest" :password "guest"}))
+(defonce rabbit (atom nil))
+(defonce disconnecting (atom false))
+(defonce installed-rules (atom []))
+(defonce startup-fn (atom #()))
+(defonce message-send-headers (atom {}))
 
 (defn set-config [{:keys [host virtual-host port username password] :as config}]
   (compare-and-set! rabbit-config @rabbit-config config))

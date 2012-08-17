@@ -1,4 +1,4 @@
-(defproject com.yuppiechef/simple-rabbit "1.0.1"
+(defproject com.yuppiechef/simple-rabbit "1.0.2"
   :description "A simple rabbitmq abstraction providing state management"
   
   :dependencies [[org.clojure/clojure "1.3.0"]

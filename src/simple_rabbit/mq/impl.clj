@@ -44,7 +44,7 @@
 (defn publish-raw
   "Publish a message through a channel"
   [channel exchange routing-key message properties]
-  (info (str "Publishing a message with routing key: " routing-key ", properties: " properties))
+  (debug (str "Publishing a message with routing key: " routing-key ", properties: " properties))
   (.basicPublish channel exchange routing-key properties message))
 
 (defn convert-properties [properties]
@@ -66,13 +66,13 @@
 (defn declare-exchange
   "Declares an exchange, with properties being a map of additional string based properties"
   [channel name type durable auto-delete internal properties]
-  (info "Declaring exchange:" name ", type:" type ", durable:" durable ", AD:" auto-delete)
+  ;(debug "Declaring exchange:" name ", type:" type ", durable:" durable ", AD:" auto-delete)
   (.exchangeDeclare channel name type durable auto-delete internal properties))
 
 (defn declare-queue
   "Declares a queue, with properties as a map of additional arguments"
   [channel name durable exclusive auto-delete properties]
-  (info "Declaring queue:" name ", durable:" durable ", exclusive:" exclusive ", AD:" auto-delete ", Properties:" properties)
+  ;(debug "Declaring queue:" name ", durable:" durable ", exclusive:" exclusive ", AD:" auto-delete ", Properties:" properties)
   (.queueDeclare channel name
                  durable
                  exclusive
@@ -81,25 +81,25 @@
 (defn bind-queue
   "Binds a queue to an exchange, with routing key and additional properties"
   [channel queue exchange routing-key properties]
-  (info "Binding queue:" queue "to exchange:" exchange "on key:" routing-key)
+  ;(debug "Binding queue:" queue "to exchange:" exchange "on key:" routing-key)
   (.queueBind channel queue exchange routing-key properties))
 
 (defn unbind-queue
   "Unbinds a queue from an exchange"
   [channel queue exchange routing-key]
-  (info "Unbinding queue:" queue "to exchange:" exchange "on key:" routing-key)
+  ;(debug "Unbinding queue:" queue "to exchange:" exchange "on key:" routing-key)
   (.queueUnbind channel queue exchange routing-key))
 
 (defn bind-exchange
   "Binds an exchange to an exchange, with routing key and additional properties"
   [channel destination source routing-key properties]
-  (info "Binding exchange:" source "to exchange:" destination "on key:" routing-key)
+  ;(debug "Binding exchange:" source "to exchange:" destination "on key:" routing-key)
   (.exchangeBind channel destination source routing-key properties))
 
 (defn unbind-exchange
   "Unbinds an axchange from an exchange"
   [channel destination source routing-key]
-  (info "Unbinding exchange:" source "to exchange:" destination "on key:" routing-key)
+  ;(debug "Unbinding exchange:" source "to exchange:" destination "on key:" routing-key)
   (.queueUnbind channel destination source routing-key))
 
 (defn create-consumer
@@ -113,7 +113,7 @@
 (defn start-consumer
   "Start a consumer in a given channel for a given queue"
   [channel queue consumer autoack]
-  (info "Consuming on" queue ", channel" channel)
+  ;(debug "Consuming on" queue ", channel" channel)
   
   (.basicConsume channel queue autoack consumer))
 
