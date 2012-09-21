@@ -51,8 +51,7 @@
 
 (defn reply-msg [channel original-properties message & [properties]]
   (let [props (assoc properties :correlation-id (.getCorrelationId original-properties))]
-    (send-msg channel "" (.getReplyTo original-properties) message props))
-  )
+    (send-msg channel "" (.getReplyTo original-properties) message props)))
 
 (defn messagefn
   [f qname channel message properties envelope]

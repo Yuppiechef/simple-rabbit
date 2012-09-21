@@ -48,13 +48,16 @@
   (.basicPublish channel exchange routing-key properties message))
 
 (defn convert-properties [properties]
+  (info "converting" properties)
   (let [map-props (into {} (map #(vector (name (first %)) (second %)) properties))]
     (-> (com.rabbitmq.client.AMQP$BasicProperties$Builder.)
         (.replyTo (:reply-to properties))
         (.correlationId (:correlation-id properties))
         (.contentType (:content-type properties))
         (.headers map-props)
+        (.deliveryMode (Integer. (get properties :delivery-mode 2)))
         (.build))))
+
 
 (defn exchange-types
   {:direct "direct"
