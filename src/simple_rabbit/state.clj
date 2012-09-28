@@ -113,7 +113,6 @@
 (defn stop-consumer [consumer]
   (.close consumer))
 
-
 ;; Convenience aliases.
 (def rules mq/rules)
 (defmacro queue [& args] `(mq/queue ~@args))

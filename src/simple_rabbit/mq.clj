@@ -173,7 +173,7 @@
                 {:type :consumer :qname name :ns ns :msg-fn msg-fn}))
   )
 
-(defmethod start-rule :exchange [connection {:keys [name exchange-type durable auto-delete internal properties]}]
+(defmethod start-rule :exchange [connection {:keys [name exchange-type durable auto-delete internal properties] :as exchange}]
   (try
     (with-open [chan (channel connection)]
       (impl/declare-exchange chan name (get impl/exchange-types exchange-type exchange-type) durable auto-delete internal properties))

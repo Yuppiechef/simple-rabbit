@@ -68,9 +68,10 @@
 
 (defn declare-exchange
   "Declares an exchange, with properties being a map of additional string based properties"
-  [channel name type durable auto-delete internal properties]
-  ;(debug "Declaring exchange:" name ", type:" type ", durable:" durable ", AD:" auto-delete)
-  (.exchangeDeclare channel name type durable auto-delete internal properties))
+  [channel nm type durable auto-delete internal properties]
+  ;(debug "Declaring exchange:" nm ", type:" type ", durable:" durable ", AD:" auto-delete)
+  (.exchangeDeclare channel nm (name type) durable auto-delete properties))
+
 
 (defn declare-queue
   "Declares a queue, with properties as a map of additional arguments"
