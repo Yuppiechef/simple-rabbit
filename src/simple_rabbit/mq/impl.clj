@@ -112,7 +112,7 @@
   (proxy [com.rabbitmq.client.DefaultConsumer] [channel]
     (handleDelivery [#^String consumerTag #^Envelope envelope
                      properties body]
-      (f channel (String. body) properties envelope))))
+      (f channel body properties envelope))))
 
 (defn start-consumer
   "Start a consumer in a given channel for a given queue"

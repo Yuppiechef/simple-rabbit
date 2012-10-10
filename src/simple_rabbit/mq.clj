@@ -25,10 +25,11 @@
   [message content-type]
   (cond
    (.equals "application/json" content-type)
-   (try (json/parse-string message true)
-        (catch Exception e
-          (warn "Could not parse json message?" message)
-          message))
+   (let [utf8string (String. message "UTF-8")]
+     (try (json/parse-string utf8string true)
+          (catch Exception e
+            (warn "Could not parse json message?" utf8string)
+            message)))
    :else message)
   )
 
@@ -57,8 +58,12 @@
   [f qname channel message properties envelope]
   (try
     (let [parsed (parsemessage message (.getContentType properties))
+          debug (:debug parsed)
+          _ (if debug (info "Received message for " qname ": " parsed))
           args [:msg parsed :properties properties :envelope envelope :channel channel :qname qname]
           response (apply f args)]
+      (when debug
+        (info "Message handled for " qname ", responding with:" response))
       (cond
        (vector? response) (reply-msg channel properties (first response) (second response))
        response (reply-msg channel properties response)))
@@ -71,8 +76,8 @@
     (contains? @consumers consumer-name)))
 
 
-(defn register-consumer [nspace qname f]
-  (let [consumer-name (str (.name nspace) "." qname)
+(defn register-consumer [nspace qname f & [consumer-name]]
+  (let [consumer-name (str (.name nspace) "." qname "." consumer-name)
         consumer (get @consumers consumer-name {})
         newconsumer (merge consumer
                            {:qname qname :f #(messagefn f qname %1 %2 %3 %4) :autoack true})]
@@ -105,8 +110,8 @@
             props (assoc properties :content-type content-type)
             encoded (encodemessage message content-type)
             result (impl/rpc-call rpc encoded props)
-            parsed (parsemessage (String. result "UTF-8") (get props :response-type "application/json"))]
-        (f parsed)
+            parsed (parsemessage result (get props :response-type "application/json"))]
+         (f parsed)
         ))
     (catch java.util.concurrent.TimeoutException e (timeout-fn))
     (catch Exception e (.printStackTrace e) (timeout-fn))))
@@ -132,8 +137,8 @@
     :properties ~properties
     })
 
-(defmacro queue [qname & {:keys [auto-delete exclusive durable msg-ttl msg-fn exchange routing-key]
-                          :or {durable true, exclusive false, auto-delete false, exchange "process"}}]
+(defmacro queue [qname & {:keys [auto-delete exclusive durable msg-ttl msg-fn exchange routing-key consumer-count]
+                          :or {durable true, exclusive false, auto-delete false, exchange "process", consumer-count 1}}]
   `{:type :queue
     :exchange ~exchange
     :name ~(str qname)
@@ -143,6 +148,7 @@
     :durable ~durable
     :msg-ttl ~msg-ttl
     :msg-fn ~msg-fn
+    :consumer-count ~consumer-count
     :ns *ns*})
 
 (defmacro on-message [qname fn]
@@ -155,11 +161,11 @@
 
 (defmulti start-rule (fn [_ rule] (:type rule)))
 
-(defmethod start-rule :consumer [connection {:keys [ns qname msg-fn]}]
-  (register-consumer ns qname msg-fn)
+(defmethod start-rule :consumer [connection {:keys [ns qname msg-fn cname]}]
+  (register-consumer ns qname msg-fn cname)
   )
 
-(defmethod start-rule :queue [connection {:keys [name auto-delete exclusive durable msg-ttl msg-fn ns exchange routing-key] :as queue}]
+(defmethod start-rule :queue [connection {:keys [name auto-delete exclusive durable msg-ttl msg-fn ns exchange routing-key consumer-count] :as queue}]
   (try
     (with-open [chan (channel connection)]
       (impl/declare-queue chan name durable exclusive auto-delete
@@ -169,9 +175,9 @@
   (with-open [chan (channel connection)]
     (impl/bind-queue chan name exchange routing-key {}))
   (when msg-fn
-    (start-rule connection
-                {:type :consumer :qname name :ns ns :msg-fn msg-fn}))
-  )
+    (doseq [i (range (or consumer-count 1))]
+      (start-rule connection
+                  {:type :consumer :qname name :ns ns :msg-fn msg-fn :cname (str i)}))))
 
 (defmethod start-rule :exchange [connection {:keys [name exchange-type durable auto-delete internal properties] :as exchange}]
   (try

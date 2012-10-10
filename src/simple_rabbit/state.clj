@@ -119,3 +119,4 @@
 (defmacro on-message [& args] `(mq/on-message ~@args))
 (defmacro exchange [& args] `(mq/exchange ~@args))
 (defmacro bind [& args] `(mq/bind ~@args))
+
