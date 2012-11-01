@@ -34,8 +34,8 @@ By default, the connection to RabbitMQ is to localhost, port 5672, virtualhost /
 Lets define a few basic echo function :
 
 ```clojure
-(defn echo [msg props envelope]
-  (reply props msg))
+(defn echo [& {msg :msg props :properties env :envelope}]
+  msg)
 ```
 
 echo will be our echo service and it will reply with the message as-is.

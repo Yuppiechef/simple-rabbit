@@ -1,10 +1,10 @@
 (ns simple-rabbit.example
   (:use [simple-rabbit.state]))
 
-(defn echo [msg props envelope]
-  (reply props msg))
+(defn echo [& {msg :msg props :properties env :envelope}]
+  msg)
 
-(defn printservice [msg & _]
+(defn printservice [& {msg :msg}]
   (println msg))
 
 (defn send-echo [str]
