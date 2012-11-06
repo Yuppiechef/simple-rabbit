@@ -103,18 +103,19 @@
   (doseq [[consumer-name consumer] @consumers]
     (stop-consumer consumer-name consumer)))
 
-(defn rpc-message [channel exchange routing-key timeout f timeout-fn message & [properties]]
+(defn rpc-blocking [channel exchange routing-key timeout timeout-msg message & [properties]]
   (try
     (with-open [rpc (impl/rpc-client channel exchange routing-key timeout)]
       (let [content-type (get properties :content-type "application/json")
             props (assoc properties :content-type content-type)
             encoded (encodemessage message content-type)
-            result (impl/rpc-call rpc encoded props)
-            parsed (parsemessage result (get props :response-type "application/json"))]
-         (f parsed)
-        ))
-    (catch java.util.concurrent.TimeoutException e (timeout-fn))
-    (catch Exception e (.printStackTrace e) (timeout-fn))))
+            result (impl/rpc-call rpc encoded props)]
+         (parsemessage result (get props :response-type "application/json"))))
+    (catch java.util.concurrent.TimeoutException e timeout-msg)
+    (catch Exception e (.printStackTrace e) timeout-msg)))
+
+(defn rpc-message [channel exchange routing-key timeout f timeout-fn message & [properties]]
+  (f (apply rpc-blocking channel exchange routing-key timeout timeout-fn message properties)))
 
 (defmacro exchange [name & [exchange-type & {:keys [durable auto-delete internal properties]
                                              :or {durable true, auto-delete false, internal false}}]]
