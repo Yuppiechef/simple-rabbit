@@ -8,3 +8,5 @@
 /.lein-deps-sum
 .classpath
 .project
+/target
+
