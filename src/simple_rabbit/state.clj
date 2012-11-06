@@ -66,6 +66,14 @@
   (with-open [chan (channel)]
     (apply mq/reply-msg chan original-properties message properties)))
 
+(defn rpc-blocking
+  [routing-key message timeout timeout-msg & [properties exchange]]
+  (with-open [chan (channel)]
+    (mq/rpc-blocking
+     chan
+     (or exchange "publish")
+     routing-key timeout timeout-msg message
+     (merge @message-send-headers properties))))
 
 (defn rpc [routing-key message result-fn timeout timeout-fn & [properties exchange]]
   (check-connection)
