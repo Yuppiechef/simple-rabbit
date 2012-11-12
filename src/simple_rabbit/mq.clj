@@ -115,7 +115,7 @@
     (catch Exception e (.printStackTrace e) timeout-msg)))
 
 (defn rpc-message [channel exchange routing-key timeout f timeout-fn message & [properties]]
-  (f (apply rpc-blocking channel exchange routing-key timeout timeout-fn message properties)))
+  (f (rpc-blocking channel exchange routing-key timeout timeout-fn message properties)))
 
 (defmacro exchange [name & [exchange-type & {:keys [durable auto-delete internal properties]
                                              :or {durable true, auto-delete false, internal false}}]]
