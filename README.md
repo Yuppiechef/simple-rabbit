@@ -1,4 +1,4 @@
-simple-rabbit
+simple-rabbit (Archived)
 =============
 
 simple-rabbit is a RabbitMQ library that wraps the AMQP client library, provides connection state management and abstracted functions to quickly be able to register consumers, send messages and do rpc calls via RabbitMQ.
